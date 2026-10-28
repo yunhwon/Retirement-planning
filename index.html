@@ -34,10 +34,9 @@ summary{cursor:pointer;color:var(--accent)}
 select{width:100%;margin-top:4px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:14px}
 .err{color:#c0392b;font-size:13px;margin:10px 0 0}
 .err:empty{display:none}
-.result.dim .big,.result.dim .kr,.result.dim .stats{opacity:.35}
+.result.dim .big,.result.dim .stats{opacity:.35}
 .lbl{font-size:13px;color:var(--sub)}
-.big{font-size:clamp(26px,6vw,38px);font-weight:800;color:var(--accent);letter-spacing:-.5px;word-break:keep-all}
-.kr{font-size:15px;margin-bottom:12px}
+.big{font-size:clamp(26px,6vw,38px);font-weight:800;color:var(--accent);letter-spacing:-.5px;word-break:keep-all;margin-bottom:12px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px solid var(--line);padding-top:12px}
 @media (max-width:560px){.stats{grid-template-columns:minmax(0,1fr)}th,td{padding:7px 6px;font-size:12px}.hint{display:block!important}}
 .hint{display:none;font-size:12px;color:var(--sub);margin:6px 2px 0}
@@ -70,7 +69,7 @@ td:first-child,th:first-child{text-align:center}
 
 <section class="card">
   <div class="grid">
-    <label for="a">매월 납입액<span class="inp"><input id="a" inputmode="numeric" autocomplete="off" value="500,000"><em>원</em></span></label>
+    <label for="a">매월 납입액<span class="inp"><input id="a" inputmode="numeric" autocomplete="off" value="500"></span></label>
     <label for="b">연 수익률<span class="inp"><input id="b" inputmode="decimal" autocomplete="off" value="8"><em>%</em></span></label>
     <label for="c">투자 기간<span class="inp"><input id="c" inputmode="numeric" autocomplete="off" value="30"><em>년</em></span></label>
   </div>
@@ -91,7 +90,6 @@ td:first-child,th:first-child{text-align:center}
 <section class="card result" id="res" aria-live="polite">
   <div class="lbl"><span id="yrs">30년</span> 후 예상 금액</div>
   <div class="big" id="final">-</div>
-  <div class="kr" id="finalKr"></div>
   <div class="stats">
     <div><span>총 납입 원금</span><b id="prin">-</b></div>
     <div><span>총 수익</span><b id="gain">-</b></div>
@@ -123,21 +121,12 @@ td:first-child,th:first-child{text-align:center}
   var nf = new Intl.NumberFormat('ko-KR');
   var state = null;
 
-  function won(x){ return nf.format(Math.round(x)) + '원'; }
-  function kr(n){
-    n = Math.floor(n);
-    if (n < 10000) return nf.format(n) + '원';
-    var jo = Math.floor(n / 1e12), eok = Math.floor((n % 1e12) / 1e8), man = Math.floor((n % 1e8) / 1e4), s = '';
-    if (jo) s += nf.format(jo) + '조 ';
-    if (eok) s += nf.format(eok) + '억 ';
-    if (man) s += nf.format(man) + '만';
-    return s.trim() + '원';
-  }
+  function won(x){ return nf.format(Math.round(x)); }
   function num(s){ return parseFloat(String(s).replace(/[,\s원%년]/g, '')); }
 
   function readInputs(){
     var A = num($('a').value), B = num($('b').value), C = num($('c').value), e = '';
-    if (!isFinite(A) || A <= 0) e = '매월 납입액을 1원 이상으로 입력해 주세요.';
+    if (!isFinite(A) || A <= 0) e = '매월 납입액을 0보다 큰 값으로 입력해 주세요.';
     else if (A > 1e10) e = '매월 납입액이 너무 큽니다.';
     else if (!isFinite(B) || B < 0 || B > 100) e = '연 수익률은 0~100% 사이로 입력해 주세요.';
     else if (!isFinite(C) || C < 1 || C > 60 || Math.floor(C) !== C) e = '투자 기간은 1~60년 사이의 정수로 입력해 주세요.';
@@ -173,14 +162,14 @@ td:first-child,th:first-child{text-align:center}
     y.forEach(function(r, i){
       var x = pl + i * bw + bw * 0.12, w = bw * 0.76;
       var hp = plot * r.dep / max, hg = plot * r.gain / max, yb = H - pb;
-      s += '<g><title>' + r.y + '년차 · 잔액 ' + kr(r.end) + '</title>' +
+      s += '<g><title>' + r.y + '년차 · 잔액 ' + nf.format(Math.round(r.end)) + '</title>' +
            '<rect class="p" x="' + x.toFixed(1) + '" y="' + (yb - hp).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hp.toFixed(1) + '"/>' +
            '<rect class="g" x="' + x.toFixed(1) + '" y="' + (yb - hp - hg).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hg.toFixed(1) + '"/></g>';
       if ((i + 1) % step === 0 || i === n - 1){
         s += '<text class="axis" text-anchor="middle" x="' + (pl + i * bw + bw / 2).toFixed(1) + '" y="' + (H - 6) + '">' + r.y + '년</text>';
       }
     });
-    s += '<text class="axis" x="' + pl + '" y="10">최대 ' + kr(max) + '</text></svg>';
+    s += '<text class="axis" x="' + pl + '" y="10">최대 ' + nf.format(Math.round(max)) + '</text></svg>';
     $('chart').innerHTML = s;
   }
 
@@ -195,7 +184,6 @@ td:first-child,th:first-child{text-align:center}
     var gain = s.final - s.dep;
     $('yrs').textContent = p.C + '년';
     $('final').textContent = won(s.final);
-    $('finalKr').textContent = '약 ' + kr(s.final);
     $('prin').textContent = won(s.dep);
     $('gain').textContent = won(gain);
     $('pct').textContent = (s.dep ? (gain / s.dep * 100) : 0).toFixed(1) + '%';
@@ -241,18 +229,18 @@ td:first-child,th:first-child{text-align:center}
     var S = {};
     cell(S, 'A1', '적립식 투자 계산 결과');
     cell(S, 'A3', '[입력값]');
-    cell(S, 'A4', '매월 납입액(원)'); cell(S, 'B4', p.A, MONEY);
+    cell(S, 'A4', '매월 납입액'); cell(S, 'B4', p.A, MONEY);
     cell(S, 'A5', '연 수익률'); cell(S, 'B5', p.B / 100, '0.00%');
     cell(S, 'A6', '투자 기간(년)'); cell(S, 'B6', p.C);
     cell(S, 'A7', '납입 시점'); cell(S, 'B7', timingTxt); cell(S, 'C7', "'월말' 또는 '월초'를 입력");
     cell(S, 'A8', '수익률 적용 방식'); cell(S, 'B8', modeTxt); cell(S, 'C8', "'연÷12'(연 수익률÷12를 매달 적용) 또는 '연실효'");
     cell(S, 'A9', '월 수익률'); cell(S, 'B9', s.r, '0.0000%', 'IF(B8="연실효",(1+B5)^(1/12)-1,B5/12)');
     cell(S, 'A11', '[결과]');
-    cell(S, 'A12', '최종 금액(원)'); cell(S, 'B12', s.final, MONEY, "'월별'!F" + last);
-    cell(S, 'A13', '총 납입 원금(원)'); cell(S, 'B13', s.dep, MONEY, 'B4*B6*12');
-    cell(S, 'A14', '총 수익(원)'); cell(S, 'B14', gain, MONEY, 'B12-B13');
+    cell(S, 'A12', '최종 금액'); cell(S, 'B12', s.final, MONEY, "'월별'!F" + last);
+    cell(S, 'A13', '총 납입 원금'); cell(S, 'B13', s.dep, MONEY, 'B4*B6*12');
+    cell(S, 'A14', '총 수익'); cell(S, 'B14', gain, MONEY, 'B12-B13');
     cell(S, 'A15', '원금 대비 수익률'); cell(S, 'B15', s.dep ? gain / s.dep : 0, '0.0%', 'B14/B13');
-    cell(S, 'A16', '공식 검산(원)'); cell(S, 'B16', s.final, MONEY, 'IF(B9=0,B4*B6*12,B4*((1+B9)^(B6*12)-1)/B9*IF(B7="월초",1+B9,1))');
+    cell(S, 'A16', '공식 검산'); cell(S, 'B16', s.final, MONEY, 'IF(B9=0,B4*B6*12,B4*((1+B9)^(B6*12)-1)/B9*IF(B7="월초",1+B9,1))');
     cell(S, 'A17', '검산 결과'); cell(S, 'B17', '일치', null, 'IF(ABS(B16-B12)<1,"일치","불일치")');
     cell(S, 'A19', '※ 납입액·수익률·납입 시점·적용 방식(B4, B5, B7, B8)을 바꾸면 월별·연도별 시트가 자동으로 다시 계산됩니다.');
     cell(S, 'A20', '※ 투자 기간은 월별 시트의 행 수로 정해지므로, 기간을 바꾸려면 웹 계산기에서 다시 내려받아 주세요.');
@@ -262,7 +250,7 @@ td:first-child,th:first-child{text-align:center}
     XLSX.utils.book_append_sheet(wb, S, '요약');
 
     var Y = {};
-    ['연차', '누적 납입(원)', '연말 잔액(원)', '누적 수익(원)', '그해 수익(원)'].forEach(function(h, i){ cell(Y, 'ABCDE'[i] + '1', h); });
+    ['연차', '누적 납입', '연말 잔액', '누적 수익', '그해 수익'].forEach(function(h, i){ cell(Y, 'ABCDE'[i] + '1', h); });
     s.yearly.forEach(function(r, i){
       var row = i + 2;
       cell(Y, 'A' + row, r.y);
@@ -276,7 +264,7 @@ td:first-child,th:first-child{text-align:center}
     XLSX.utils.book_append_sheet(wb, Y, '연도별');
 
     var M = {};
-    ['월', '연차', '기초 잔액(원)', '납입(원)', '수익(원)', '기말 잔액(원)'].forEach(function(h, i){ cell(M, 'ABCDEF'[i] + '1', h); });
+    ['월', '연차', '기초 잔액', '납입', '수익', '기말 잔액'].forEach(function(h, i){ cell(M, 'ABCDEF'[i] + '1', h); });
     s.months.forEach(function(r, i){
       var row = i + 2;
       cell(M, 'A' + row, r.m);
@@ -318,4 +306,3 @@ td:first-child,th:first-child{text-align:center}
 </script>
 </body>
 </html>
-
